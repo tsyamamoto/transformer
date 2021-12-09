@@ -711,6 +711,19 @@ public class TransformOptions {
 			return false;
 		}
 
+		try {
+			inputFile = inputFile.getCanonicalFile();
+			inputPath = inputFile.getCanonicalPath();
+		} catch (IOException e) {
+			this.transformer.dual_error("Input error [ %s ] [ %s ]", inputName, e.toString());
+			return false;
+		}
+		if (inputFile.getParent() == null) {
+			this.transformer.dual_error("Input directory is invalid. Don't designate the top direcotry. [ %s ] [ %s ]",
+				inputName, inputPath);
+			return false;
+		}
+
 		this.transformer.dual_info("Input     [ %s ]", inputName);
 		this.transformer.dual_info("          [ %s ]", inputPath);
 		return true;
@@ -727,18 +740,20 @@ public class TransformOptions {
 			useOutputName = FileUtils.normalize(useOutputName);
 
 		} else {
-			int indexOfLastSlash = inputName.lastIndexOf('/');
-			if (indexOfLastSlash == -1) {
-				useOutputName = OUTPUT_PREFIX + inputName;
-			} else {
-				String inputPrefix = inputName.substring(0, indexOfLastSlash + 1);
-				String inputSuffix = inputName.substring(indexOfLastSlash + 1);
-				useOutputName = inputPrefix + OUTPUT_PREFIX + inputSuffix;
-			}
+			File parent = inputFile.getParentFile();
+			File output = new File(parent, OUTPUT_PREFIX + inputFile.getName());
+			useOutputName = FileUtils.normalize(output.getAbsolutePath());
 		}
 
 		File useOutputFile = new File(useOutputName);
-		String useOutputPath = useOutputFile.getAbsolutePath();
+		String useOutputPath = null;
+		try {
+			useOutputFile = useOutputFile.getCanonicalFile();
+			useOutputPath = useOutputFile.getCanonicalPath();
+		} catch (IOException e) {
+			this.transformer.dual_error("Output error [ %s ] [ %s ]", outputName, e.toString());
+			return false;
+		}
 
 		boolean putIntoDirectory = (inputFile.isFile() && useOutputFile.isDirectory());
 
@@ -793,8 +808,24 @@ public class TransformOptions {
 		outputName = useOutputName;
 		outputFile = useOutputFile;
 		outputPath = useOutputPath;
+		if (isSubdirectory(inputFile, outputFile)) {
+			this.transformer.dual_error("Output path is under input directory [ %s ]", useOutputPath);
+			return false;
+		}
 
 		return true;
+	}
+
+	private boolean isSubdirectory(File input, File output) {
+		if (input.isFile()) {
+			return false;
+		}
+		for (File file = output; file != null; file = file.getParentFile()) {
+			if (file.equals(input)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public void setActions() {
