@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+  Copyright (c) Contributors to the Eclipse Foundation
+ 
+  This program and the accompanying materials are made available under the
+  terms of the Eclipse Public License 2.0 which is available at
+  http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+  which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ 
+  SPDX-License-Identifier: (EPL-2.0 OR Apache-2.0)
+ -->
+<connector xmlns="http://java.sun.com/xml/ns/javaee"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
+           http://java.sun.com/xml/ns/javaee/connector_1_6.xsd"
+           version="1.6">
+    <display-name>Resource Adapter Sample</display-name>
+    <vendor-name>Sample Vendor</vendor-name>
+    <eis-type>JDBC Database</eis-type>
+    <resourceadapter>
+        <resourceadapter-class>sample.ra.ResourceAdapterImpl</resourceadapter-class>
+        <outbound-resourceadapter>
+            <connection-definition>
+                <managedconnectionfactory-class>sample.ra.outbound.ManagedConnectionFactory</managedconnectionfactory-class>
+                <connectionfactory-interface>javax.resource.cci.ConnectionFactory</connectionfactory-interface>
+                <connectionfactory-impl-class>sample.ra.outbound.ConnectionFactory</connectionfactory-impl-class>
+                <connection-interface>javax.resource.cci.Connection</connection-interface>
+                <connection-impl-class>sample.ra.outbound.Connection</connection-impl-class>
+            </connection-definition>
+            <transaction-support>NoTransaction</transaction-support>
+            <authentication-mechanism>
+                <authentication-mechanism-type>BasicPassword</authentication-mechanism-type>
+                <credential-interface>javax.resource.spi.security.PasswordCredential</credential-interface>
+            </authentication-mechanism>
+            <reauthentication-support>false</reauthentication-support>
+        </outbound-resourceadapter>
+        
+        <inbound-resourceadapter>
+            <messageadapter>
+                <messagelistener>
+                    <messagelistener-type>sample.ra.inbound.MessageListener</messagelistener-type>
+                    <activationspec>
+                        <activationspec-class>sample.ra.ActivationSpecImpl</activationspec-class>
+                        <required-config-property>
+                            <config-property-name>userName</config-property-name>
+                        </required-config-property>
+                        <required-config-property>
+                            <config-property-name>password</config-property-name>
+                        </required-config-property>
+                    </activationspec>
+                </messagelistener>
+            </messageadapter>
+        </inbound-resourceadapter>
+    </resourceadapter>
+</connector>
