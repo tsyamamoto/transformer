@@ -808,24 +808,12 @@ public class TransformOptions {
 		outputName = useOutputName;
 		outputFile = useOutputFile;
 		outputPath = useOutputPath;
-		if (isSubdirectory(inputFile, outputFile)) {
+		if (outputPath.startsWith(inputPath + File.separator)) {
 			this.transformer.dual_error("Output path is under input directory [ %s ]", useOutputPath);
 			return false;
 		}
 
 		return true;
-	}
-
-	private boolean isSubdirectory(File input, File output) {
-		if (input.isFile()) {
-			return false;
-		}
-		for (File file = output; file != null; file = file.getParentFile()) {
-			if (file.equals(input)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	public void setActions() {
