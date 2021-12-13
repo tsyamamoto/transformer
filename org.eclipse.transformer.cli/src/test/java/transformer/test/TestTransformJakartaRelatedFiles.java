@@ -15,6 +15,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -107,6 +108,24 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 	public static final String	JAKARTA_RESOURCE_CCI_CONNECTIONFACTORY				= ">jakarta.resource.cci.ConnectionFactory<";
 	public static final String	JAKARTA_RESOURCE_CCI_CONNECTION						= ">jakarta.resource.cci.Connection<";
 	public static final String	JAKARTA_RESOURCE_SPI_SECURITY_PASSWORDCREDENTIAL	= ">jakarta.resource.spi.security.PasswordCredential<";
+
+	public static final String		JAVAX_SEVLET_REQUEST								= "javax.servlet.request";
+	public static final String		JAKARTA_SERVLET_REQUEST								= "jakarta.servlet.request";
+	public static final String		TEST_DATA_SERVLET_JAVA								= "src/test/java/transformer/test/data/Sample_ServletProperty.java";
+	public static final String		JAVA_SIMPLE_NAME									= "Sample_ServletProperty.java";
+	public static final String		TEST_DATA_SERVLET_CLASS								= "transformer/test/data/Sample_ServletProperty.class";
+	public static final String[]	JAVAX_SERVLET_PROPERTIES							= new String[] {
+		"javax.servlet.request.cipher_suite", "javax.servlet.request.key_size", "javax.servlet.request.ssl_session_id",
+		"javax.servlet.request.X509Certificate", "javax.servlet.context.tempdir", "javax.servlet.context.orderedLibs",
+		"javax.servlet.include.request_uri", "javax.servlet.include.context_path", "javax.servlet.include.servlet_path",
+		"javax.servlet.include.mapping", "javax.servlet.include.path_info", "javax.servlet.include.query_string",
+		"javax.servlet.forward.mapping", "javax.servlet.forward.request_uri", "javax.servlet.forward.context_path",
+		"javax.servlet.forward.servlet_path", "javax.servlet.forward.path_info", "javax.servlet.forward.query_string",
+		"javax.servlet.async.mapping", "javax.servlet.async.request_uri", "javax.servlet.async.context_path",
+		"javax.servlet.async.servlet_path", "javax.servlet.async.path_info", "javax.servlet.async.query_string",
+		"javax.servlet.error.status_code", "javax.servlet.error.exception_type", "javax.servlet.error.message",
+		"javax.servlet.error.exception", "javax.servlet.error.request_uri", "javax.servlet.error.servlet_name"
+	};
 
 	UTF8Properties					jakartaRenamesProperties;
 	UTF8Properties					jakartaXmlDdProperties;
@@ -361,6 +380,34 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 		new Occurrences(JAVAX_RESOURCE_SPI_SECURITY_PASSWORDCREDENTIAL, 0),
 		new Occurrences(JAKARTA_RESOURCE_SPI_SECURITY_PASSWORDCREDENTIAL, 1)
 	};
+
+	public static final Occurrences[]	SERVLET_INITIAL_OCCURRENCES;
+
+	public static final Occurrences[]	SERVLET_FINAL_OCCURRENCES;
+
+	static {
+		List<Occurrences> initialList = new ArrayList<>();
+		List<Occurrences> finalList = new ArrayList<>();
+
+		for (String servletProperty : JAVAX_SERVLET_PROPERTIES) {
+			Occurrences o1 = new Occurrences(servletProperty, 1);
+			if (servletProperty.equals("javax.servlet.error.exception")) {
+				o1 = new Occurrences(servletProperty, 2);
+			}
+			initialList.add(o1);
+			initialList.add(new Occurrences(servletProperty.replace("javax", "jakarta"), 0));
+			finalList.add(new Occurrences(servletProperty, 0));
+
+			Occurrences o2 = new Occurrences(servletProperty.replace("javax", "jakarta"), 1);
+			if (servletProperty.equals("javax.servlet.error.exception")) {
+				o2 = new Occurrences(servletProperty.replace("javax", "jakarta"), 2);
+			}
+			finalList.add(o2);
+		}
+		SERVLET_INITIAL_OCCURRENCES = initialList.toArray(new Occurrences[0]);
+		SERVLET_FINAL_OCCURRENCES = finalList.toArray(new Occurrences[0]);
+	}
+
 	//
 	public List<String> display(String resourceRef, InputStream resourceStream) throws IOException {
 		System.out.println("Resource [ " + resourceRef + " ]");
@@ -450,6 +497,31 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 		System.out.println("Transform [ " + resourceRef + " ] ... OK");
 	}
 
+	public void testTransformClass(String resourceRef)
+		throws TransformException, IOException, URISyntaxException, ParseException {
+
+		System.out.println("Transform [ " + resourceRef + " ] ...");
+		loadProperties();
+
+		ClassActionImpl useClassAction = getClassAction();
+		System.out.println("Transform [ " + resourceRef + " ] using [ " + useClassAction.getName() + " ]");
+
+		try (InputStream resourceInput = TestUtils.getResourceStream(resourceRef)) { // throws
+			InputStreamData xmlOutput = useClassAction.apply(resourceRef, resourceInput); // throws
+		}
+
+		int expected = JAVAX_SERVLET_PROPERTIES.length * 2 + 5;
+		int actual = useClassAction.getLastActiveChanges()
+			.getModifiedConstants();
+
+		useClassAction.getLastActiveChanges()
+			.display(System.out, "input", "output");
+		Assertions.assertEquals(expected, actual,
+			"Resource [ " + resourceRef + " ] Expected [ " + expected + " ] Actual [ " + actual + " ]");
+
+		System.out.println("Transform [ " + resourceRef + " ] ... OK");
+	}
+
 	public void loadProperties() throws URISyntaxException, IOException, TransformException, ParseException {
 		if (jakartaRenamesProperties != null) {
 			return;
@@ -533,5 +605,17 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 	@Test
 	public void testTransform_raXml() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(RA_XML_PATH, RA_XML_INITIAL_OCCURRENCES, RA_XML_FINAL_OCCURRENCES);
+	}
+
+	@Test
+	public void testTransform_JavaServletProperty()
+		throws TransformException, IOException, URISyntaxException, ParseException {
+		testTransformJava(TEST_DATA_SERVLET_JAVA, SERVLET_INITIAL_OCCURRENCES, SERVLET_FINAL_OCCURRENCES);
+	}
+
+	@Test
+	public void testTransform_ClassServletProperty()
+		throws TransformException, IOException, URISyntaxException, ParseException {
+		testTransformClass(TEST_DATA_SERVLET_CLASS);
 	}
 }
