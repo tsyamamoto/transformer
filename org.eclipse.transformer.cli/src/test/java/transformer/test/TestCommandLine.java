@@ -80,7 +80,7 @@ class TestCommandLine {
 		String inputFileName = STATIC_CONTENT_DIR;
 		File inputFile = new File(inputFileName);
 		String realOutputFileName = new File(inputFile.getParentFile(), "output_" + inputFile.getName())
-			.getAbsolutePath();
+			.getCanonicalPath();
 		verifyAction(DirectoryActionImpl.class.getName(), inputFileName, null, FileUtils.normalize(realOutputFileName));
 	}
 
@@ -89,7 +89,7 @@ class TestCommandLine {
 		String inputFileName = STATIC_CONTENT_DIR + '/';
 		File inputFile = new File(inputFileName);
 		String realOutputFileName = new File(inputFile.getParentFile(), "output_" + inputFile.getName())
-			.getAbsolutePath();
+			.getCanonicalPath();
 		verifyAction(DirectoryActionImpl.class.getName(), inputFileName, null, FileUtils.normalize(realOutputFileName));
 	}
 
@@ -98,7 +98,7 @@ class TestCommandLine {
 		String inputFileName = STATIC_CONTENT_DIR + "/A.java";
 		File inputFile = new File(inputFileName);
 		String realOutputFileName = new File(inputFile.getParentFile(), "output_" + inputFile.getName())
-			.getAbsolutePath();
+			.getCanonicalPath();
 		verifyAction(JavaActionImpl.class.getName(), inputFileName, null, FileUtils.normalize(realOutputFileName));
 	}
 
