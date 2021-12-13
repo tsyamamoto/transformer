@@ -11,16 +11,24 @@
 
 package transformer.test;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.cli.ParseException;
 import org.eclipse.transformer.TransformException;
+import org.eclipse.transformer.TransformOptions;
+import org.eclipse.transformer.Transformer;
+import org.eclipse.transformer.action.impl.ClassActionImpl;
 import org.eclipse.transformer.action.impl.InputBufferImpl;
+import org.eclipse.transformer.action.impl.JavaActionImpl;
 import org.eclipse.transformer.action.impl.SelectionRuleImpl;
 import org.eclipse.transformer.action.impl.SignatureRuleImpl;
 import org.eclipse.transformer.action.impl.TextActionImpl;
@@ -28,6 +36,7 @@ import org.eclipse.transformer.util.InputStreamData;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import aQute.lib.utf8properties.UTF8Properties;
 import transformer.test.util.CaptureLoggerImpl;
 
 public class TestTransformJakartaRelatedFiles extends CaptureTest {
@@ -53,11 +62,21 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 	public static final String	TEST2_TAGX_SIMPLE_NAME				= "test2.tagx";
 	public static final String	TEST2_TAGX_PATH						= TEST_DATA_PREFIX + '/' + TEST2_TAGX_SIMPLE_NAME;
 
+	public static final String	TAGLIB_TLD_SIMPLE_NAME				= "taglib.tld";
+	public static final String	TAGLIB_TLD_PATH						= TEST_DATA_PREFIX + '/' + TAGLIB_TLD_SIMPLE_NAME;
+
+
 	public static final String	INDEX_XHTML_SIMPLE_NAME				= "index.xhtml";
 	public static final String	INDEX_XHTML_PATH					= TEST_DATA_PREFIX + '/' + INDEX_XHTML_SIMPLE_NAME;
 
 	public static final String	RA_XML_SIMPLE_NAME					= "ra.xml";
 	public static final String	RA_XML_PATH							= TEST_DATA_PREFIX + '/' + RA_XML_SIMPLE_NAME;
+
+	public static final String	WEB_XML_SIMPLE_NAME					= "web.xml";
+	public static final String	WEB_XML_PATH						= TEST_DATA_PREFIX + '/' + WEB_XML_SIMPLE_NAME;
+
+	public static final String	EJB_JAR_XML_SIMPLE_NAME				= "ejb-jar.xml";
+	public static final String	EJB_JAR_XML_PATH					= TEST_DATA_PREFIX + '/' + EJB_JAR_XML_SIMPLE_NAME;
 
 	public static final String	JAVAX_JMS_QUEUE_CONECTION_FACTORY	= "\"javax.jms.QueueConnectionFactory\"";
 	public static final String	JAVAX_JMS_QUEUE						= "\"javax.jms.Queue\"";
@@ -69,6 +88,15 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 	public static final String	JAVAX_SERVLET_JSP_JSPWRITER			= "javax.servlet.jsp.JspWriter";
 	public static final String	JAKARTA_SERVLET_JSP_JSPWRITER		= "jakarta.servlet.jsp.JspWriter";
 
+	public static final String	JAVAX_HTTP_SERVLET_REQUEST			= "javax.servlet.http.HttpServletRequest";
+	public static final String	JAKARTA_HTTP_SERVLET_REQUEST        = "jakarta.servlet.http.HttpServletRequest";
+	public static final String	JAVAX_HTTP_SESSION					= "javax.servlet.http.HttpSession";
+	public static final String	JAKARTA_HTTP_SESSION				= "jakarta.servlet.http.HttpSession";
+	public static final String 	JAVAX_SERVLET_SERVLET_EXCEPTION		= "javax.servlet.ServletException";
+	public static final String 	JAKARTA_SERVLET_SERVLET_EXCEPTION	= "jakarta.servlet.ServletException";
+	public static final String 	JAVAX_MAIL_SESSION					= "javax.mail.Session";
+	public static final String 	JAKARTA_MAIL_SESSION				= "jakarta.mail.Session";
+
 	public static final String	JAVAX_FACES							= "javax.faces";
 	public static final String	JAKARTA_FACES						= "jakarta.faces";
 
@@ -79,6 +107,10 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 	public static final String	JAKARTA_RESOURCE_CCI_CONNECTIONFACTORY				= ">jakarta.resource.cci.ConnectionFactory<";
 	public static final String	JAKARTA_RESOURCE_CCI_CONNECTION						= ">jakarta.resource.cci.Connection<";
 	public static final String	JAKARTA_RESOURCE_SPI_SECURITY_PASSWORDCREDENTIAL	= ">jakarta.resource.spi.security.PasswordCredential<";
+
+	UTF8Properties					jakartaRenamesProperties;
+	UTF8Properties					jakartaXmlDdProperties;
+	UTF8Properties					jakartaTextMasterProperties;
 	//
 
 	public Set<String> getIncludes() {
@@ -95,64 +127,34 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 
 	public Map<String, Map<String, String>> getMasterXmlUpdates() {
 		if (masterXmlUpdates == null) {
-			Map<String, Map<String, String>> useXmlUpdates = new HashMap<>(10);
+			Map<String, Map<String, String>> filetypeUpdates = new HashMap<>();
 
-			Map<String, String> sunResourcesXmlUpdates = new HashMap<>(2);
-			sunResourcesXmlUpdates.put(JAVAX_JMS_QUEUE_CONECTION_FACTORY, JAKARTA_JMS_QUEUE_CONECTION_FACTORY);
-			sunResourcesXmlUpdates.put(JAVAX_JMS_QUEUE, JAKARTA_JMS_QUEUE);
-			useXmlUpdates.put(SUN_RESOURCES_XML_SIMPLE_NAME, sunResourcesXmlUpdates);
+			Map<String, String> xmlUpdates = new HashMap<>();
+			for (Entry<Object, Object> jakartaXmlDdProperty : jakartaXmlDdProperties.entrySet()) {
+				xmlUpdates.put(jakartaXmlDdProperty.getKey()
+					.toString(),
+					jakartaXmlDdProperty.getValue()
+						.toString());
+			}
 
-			Map<String, String> glassfishResourcesXmlUpdates = new HashMap<>(2);
-			glassfishResourcesXmlUpdates.put(JAVAX_JMS_QUEUE_CONECTION_FACTORY, JAKARTA_JMS_QUEUE_CONECTION_FACTORY);
-			glassfishResourcesXmlUpdates.put(JAVAX_JMS_QUEUE, JAKARTA_JMS_QUEUE);
-			useXmlUpdates.put(GLASSFISH_RESOURCES_XML_SIMPLE_NAME, glassfishResourcesXmlUpdates);
+			for (Entry<Object, Object> entry : jakartaTextMasterProperties.entrySet()) {
+				HashMap<String, String>	map = new HashMap<>();
+				filetypeUpdates.put(entry.getKey().toString(), map);
+				if(entry.getValue().toString().equals("jakarta-xml-dd.properties")) {
+					map.putAll(xmlUpdates);
+				} else if (entry.getValue().toString().equals("jakarta-renames.properties")) {
+					map.putAll(getMasterJavaUpdates());
+				}
+			}
 
-			Map<String, String> includeJspfUpdates = new HashMap<>(1);
-			includeJspfUpdates.put(JAVAX_SERVLET_HTTP_COOKIE, JAKARTA_SERVLET_HTTP_COOKIE);
-			useXmlUpdates.put(INCLUDE_JSPF_SIMPLE_NAME, includeJspfUpdates);
-
-			Map<String, String> indexJspUpdates = new HashMap<>(2);
-			indexJspUpdates.put(JAVAX_SERVLET_HTTP_COOKIE, JAKARTA_SERVLET_HTTP_COOKIE);
-			indexJspUpdates.put(JAVAX_SERVLET_JSP_JSPWRITER, JAKARTA_SERVLET_JSP_JSPWRITER);
-			useXmlUpdates.put(INDEX_JSP_SIMPLE_NAME, indexJspUpdates);
-
-			Map<String, String> indexJspxUpdates = new HashMap<>(2);
-			indexJspxUpdates.put(JAVAX_SERVLET_HTTP_COOKIE, JAKARTA_SERVLET_HTTP_COOKIE);
-			indexJspxUpdates.put(JAVAX_SERVLET_JSP_JSPWRITER, JAKARTA_SERVLET_JSP_JSPWRITER);
-			useXmlUpdates.put(INDEX_JSPX_SIMPLE_NAME, indexJspxUpdates);
-
-			Map<String, String> includeTagfUpdates = new HashMap<>(1);
-			includeTagfUpdates.put(JAVAX_SERVLET_HTTP_COOKIE, JAKARTA_SERVLET_HTTP_COOKIE);
-			useXmlUpdates.put(INCLUDE_TAGF_SIMPLE_NAME, includeTagfUpdates);
-
-			Map<String, String> test1TagUpdates = new HashMap<>(2);
-			test1TagUpdates.put(JAVAX_SERVLET_HTTP_COOKIE, JAKARTA_SERVLET_HTTP_COOKIE);
-			test1TagUpdates.put(JAVAX_SERVLET_JSP_JSPWRITER, JAKARTA_SERVLET_JSP_JSPWRITER);
-			useXmlUpdates.put(TEST1_TAG_SIMPLE_NAME, test1TagUpdates);
-
-			Map<String, String> test2TagxUpdates = new HashMap<>(2);
-			test2TagxUpdates.put(JAVAX_SERVLET_HTTP_COOKIE, JAKARTA_SERVLET_HTTP_COOKIE);
-			test2TagxUpdates.put(JAVAX_SERVLET_JSP_JSPWRITER, JAKARTA_SERVLET_JSP_JSPWRITER);
-			useXmlUpdates.put(TEST2_TAGX_SIMPLE_NAME, test2TagxUpdates);
-
-			Map<String, String> indexXhtmlUpdates = new HashMap<>(1);
-			indexXhtmlUpdates.put(JAVAX_FACES, JAKARTA_FACES);
-			useXmlUpdates.put(INDEX_XHTML_SIMPLE_NAME, indexXhtmlUpdates);
-
-			Map<String, String> raXmlUpdates = new HashMap<>(3);
-			raXmlUpdates.put(JAVAX_RESOURCE_CCI_CONNECTIONFACTORY, JAKARTA_RESOURCE_CCI_CONNECTIONFACTORY);
-			raXmlUpdates.put(JAVAX_RESOURCE_CCI_CONNECTION, JAKARTA_RESOURCE_CCI_CONNECTION);
-			raXmlUpdates.put(JAVAX_RESOURCE_SPI_SECURITY_PASSWORDCREDENTIAL,
-				JAKARTA_RESOURCE_SPI_SECURITY_PASSWORDCREDENTIAL);
-			useXmlUpdates.put(RA_XML_SIMPLE_NAME, raXmlUpdates);
-
-			masterXmlUpdates = useXmlUpdates;
+			masterXmlUpdates = filetypeUpdates;
 		}
 
 		return masterXmlUpdates;
 	}
 
 	//
+
 
 	public TextActionImpl textAction;
 
@@ -169,6 +171,49 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 		return textAction;
 	}
 
+	public Map<String, String> masterJavaUpdates;
+
+	public Map<String, String> getMasterJavaUpdates() {
+		if (masterJavaUpdates == null) {
+			Map<String, Map<String, String>> useJavaUpdates = new HashMap<>(2);
+
+			masterJavaUpdates = new HashMap<>();
+			for (Entry<Object, Object> jakartaRenamesProperty : jakartaRenamesProperties.entrySet()) {
+				masterJavaUpdates.put(jakartaRenamesProperty.getKey().toString(), jakartaRenamesProperty.getValue().toString());
+			}
+		}
+
+		return masterJavaUpdates;
+	}
+
+	public JavaActionImpl javaAction;
+
+	public JavaActionImpl getJavaAction() {
+		if (javaAction == null) {
+			CaptureLoggerImpl useLogger = getCaptureLogger();
+
+			javaAction = new JavaActionImpl(useLogger, false, false, new InputBufferImpl(),
+				new SelectionRuleImpl(useLogger, getIncludes(), getExcludes()), new SignatureRuleImpl(useLogger,
+					getMasterJavaUpdates(), null, null, null, null, null, Collections.emptyMap()));
+		}
+
+		return javaAction;
+	}
+
+	public ClassActionImpl classAction;
+
+	public ClassActionImpl getClassAction() {
+		if (classAction == null) {
+			CaptureLoggerImpl useLogger = getCaptureLogger();
+
+			classAction = new ClassActionImpl(useLogger, false, false, new InputBufferImpl(),
+				new SelectionRuleImpl(useLogger, getIncludes(), getExcludes()), new SignatureRuleImpl(useLogger,
+					getMasterJavaUpdates(), null, null, null, null, null, Collections.emptyMap()));
+		}
+
+		return classAction;
+	}
+
 	//
 
 	protected static final class Occurrences {
@@ -180,6 +225,22 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 			this.count = count;
 		}
 	}
+
+	public static final Occurrences[]	WEB_XML_INITIAL_OCCURRENCES = {
+		new Occurrences(JAVAX_SERVLET_SERVLET_EXCEPTION, 1), new Occurrences(JAKARTA_SERVLET_SERVLET_EXCEPTION, 0)
+	};
+
+	public static final Occurrences[]	WEB_XML_FINAL_OCCURRENCES = {
+		new Occurrences(JAVAX_SERVLET_SERVLET_EXCEPTION, 0), new Occurrences(JAKARTA_SERVLET_SERVLET_EXCEPTION, 1)
+	};
+
+	public static final Occurrences[]	EJB_JAR_XML_INITIAL_OCCURRENCES = {
+		new Occurrences(JAVAX_MAIL_SESSION, 1), new Occurrences(JAKARTA_MAIL_SESSION, 0)
+	};
+
+	public static final Occurrences[]	EJB_JAR_XML_FINAL_OCCURRENCES = {
+		new Occurrences(JAVAX_MAIL_SESSION, 0), new Occurrences(JAKARTA_MAIL_SESSION, 1)
+	};
 
 	public static final Occurrences[]	SUN_RESOURCES_XML_INITIAL_OCCURRENCES = {
 		new Occurrences(JAVAX_JMS_QUEUE_CONECTION_FACTORY, 1),
@@ -265,6 +326,16 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 		new Occurrences(JAVAX_SERVLET_JSP_JSPWRITER, 0), new Occurrences(JAKARTA_SERVLET_JSP_JSPWRITER, 1)
 	};
 
+	public static final Occurrences[]	TAGLIB_TLD_INITIAL_OCCURRENCES = {
+		new Occurrences(JAVAX_HTTP_SERVLET_REQUEST, 1), new Occurrences(JAKARTA_HTTP_SERVLET_REQUEST, 0),
+		new Occurrences(JAVAX_HTTP_SESSION, 1), new Occurrences(JAKARTA_HTTP_SESSION, 0)
+	};
+
+	public static final Occurrences[]	TAGLIB_TLD_FINAL_OCCURRENCES = {
+		new Occurrences(JAVAX_HTTP_SERVLET_REQUEST, 0), new Occurrences(JAKARTA_HTTP_SERVLET_REQUEST, 1),
+		new Occurrences(JAVAX_HTTP_SESSION, 0), new Occurrences(JAKARTA_HTTP_SESSION, 1)
+	};
+
 	public static final Occurrences[]	INDEX_XHTML_INITIAL_OCCURRENCES = {
 		new Occurrences(JAVAX_FACES, 1), new Occurrences(JAKARTA_FACES, 0)
 	};
@@ -291,7 +362,6 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 		new Occurrences(JAKARTA_RESOURCE_SPI_SECURITY_PASSWORDCREDENTIAL, 1)
 	};
 	//
-
 	public List<String> display(String resourceRef, InputStream resourceStream) throws IOException {
 		System.out.println("Resource [ " + resourceRef + " ]");
 		List<String> lines = TestUtils.loadLines(resourceStream); // throws
@@ -306,10 +376,10 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 	}
 
 	public void testTransform(String resourceRef, Occurrences[] initialOccurrences, Occurrences[] finalOccurrences)
-		throws TransformException, IOException {
+		throws TransformException, IOException, URISyntaxException, ParseException {
 
 		System.out.println("Transform [ " + resourceRef + " ] ...");
-
+		loadProperties();
 		List<String> initialLines;
 		try (InputStream resourceInput = TestUtils.getResourceStream(resourceRef)) { // throws
 																						// IOException
@@ -352,54 +422,116 @@ public class TestTransformJakartaRelatedFiles extends CaptureTest {
 		System.out.println("Verify [ " + resourceRef + " ] [ " + caseTag + " ] ... done");
 	}
 
+	public void testTransformJava(String resourceRef, Occurrences[] initialOccurrences, Occurrences[] finalOccurrences)
+		throws TransformException, IOException, URISyntaxException, ParseException {
+
+		System.out.println("Transform [ " + resourceRef + " ] ...");
+		loadProperties();
+		List<String> initialLines;
+		try (InputStream resourceInput = new FileInputStream(resourceRef)) { // throws
+																						// IOException
+			initialLines = display(resourceRef, resourceInput);
+		}
+
+		JavaActionImpl useJavaAction = getJavaAction();
+		System.out.println("Transform [ " + resourceRef + " ] using [ " + useJavaAction.getName() + " ]");
+
+		List<String> finalLines;
+		try (InputStream resourceInput = new FileInputStream(resourceRef)) { // throws
+																						// IOException
+			InputStreamData xmlOutput = useJavaAction.apply(resourceRef, resourceInput); // throws
+																							// JakartaTransformException
+			finalLines = display(resourceRef, xmlOutput.stream);
+		}
+
+		verify(resourceRef, "initial lines", initialOccurrences, initialLines);
+		verify(resourceRef, "final lines", finalOccurrences, finalLines);
+
+		System.out.println("Transform [ " + resourceRef + " ] ... OK");
+	}
+
+	public void loadProperties() throws URISyntaxException, IOException, TransformException, ParseException {
+		if (jakartaRenamesProperties != null) {
+			return;
+		}
+		Transformer jTrans = new Transformer(System.out, System.err);
+		TransformOptions options = jTrans.createTransformOptions();
+		jTrans.setArgs(new String[0]);
+		jTrans.setParsedArgs();
+		options.setLogging();
+		jakartaRenamesProperties = jTrans.loadExternalProperties("jakarta-renames.properties",
+			"src/main/resources/org/eclipse/transformer/jakarta/jakarta-renames.properties");
+		jakartaTextMasterProperties = jTrans.loadExternalProperties("jakarta-text-master.properties",
+			"src/main/resources/org/eclipse/transformer/jakarta/jakarta-text-master.properties");
+		jakartaXmlDdProperties = jTrans.loadExternalProperties("jakarta-renames.properties",
+			"src/main/resources/org/eclipse/transformer/jakarta/jakarta-xml-dd.properties");
+	}
+
 	//
 	@Test
-	public void testTransform_sunResourcesXml() throws TransformException, IOException {
+	public void testTransform_webXml() throws TransformException, IOException, URISyntaxException, ParseException {
+		testTransform(WEB_XML_PATH, WEB_XML_INITIAL_OCCURRENCES, WEB_XML_FINAL_OCCURRENCES);
+	}
+
+	@Test
+	public void testTransform_ejbJarXml() throws TransformException, IOException, URISyntaxException, ParseException {
+		testTransform(EJB_JAR_XML_PATH, EJB_JAR_XML_INITIAL_OCCURRENCES, EJB_JAR_XML_FINAL_OCCURRENCES);
+	}
+
+	@Test
+	public void testTransform_sunResourcesXml()
+		throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(SUN_RESOURCES_XML_PATH, SUN_RESOURCES_XML_INITIAL_OCCURRENCES, SUN_RESOURCES_XML_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_glassfishResourcesXml() throws TransformException, IOException {
+	public void testTransform_glassfishResourcesXml()
+		throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(GLASSFISH_RESOURCES_XML_PATH, GLASSFISH_RESOURCES_XML_INITIAL_OCCURRENCES, GLASSFISH_RESOURCES_XML_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_includeJspf() throws TransformException, IOException {
+	public void testTransform_includeJspf() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(INCLUDE_JSPF_PATH, INCLUDE_JSPF_INITIAL_OCCURRENCES, INCLUDE_JSPF_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_indexJsp() throws TransformException, IOException {
+	public void testTransform_indexJsp() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(INDEX_JSP_PATH, INDEX_JSP_INITIAL_OCCURRENCES, INDEX_JSP_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_indexJspx() throws TransformException, IOException {
+	public void testTransform_indexJspx() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(INDEX_JSPX_PATH, INDEX_JSPX_INITIAL_OCCURRENCES, INDEX_JSPX_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_includeTagf() throws TransformException, IOException {
+	public void testTransform_includeTagf() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(INCLUDE_TAGF_PATH, INCLUDE_TAGF_INITIAL_OCCURRENCES, INCLUDE_TAGF_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_indexTag() throws TransformException, IOException {
+	public void testTransform_indexTag() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(TEST1_TAG_PATH, TEST1_TAG_INITIAL_OCCURRENCES, TEST1_TAG_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_indexTagx() throws TransformException, IOException {
+	public void testTransform_indexTagx() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(TEST2_TAGX_PATH, TEST2_TAGX_INITIAL_OCCURRENCES, TEST2_TAGX_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_indexXhtml() throws TransformException, IOException {
+	public void testTransform_taglibTld() throws TransformException, IOException, URISyntaxException, ParseException {
+		testTransform(TAGLIB_TLD_PATH, TAGLIB_TLD_INITIAL_OCCURRENCES, TAGLIB_TLD_FINAL_OCCURRENCES);
+	}
+
+	@Test
+	public void testTransform_indexXhtml() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(INDEX_XHTML_PATH, INDEX_XHTML_INITIAL_OCCURRENCES, INDEX_XHTML_FINAL_OCCURRENCES);
 	}
 
 	@Test
-	public void testTransform_raXml() throws TransformException, IOException {
+	public void testTransform_raXml() throws TransformException, IOException, URISyntaxException, ParseException {
 		testTransform(RA_XML_PATH, RA_XML_INITIAL_OCCURRENCES, RA_XML_FINAL_OCCURRENCES);
 	}
 }

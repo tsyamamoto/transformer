@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<!-- 
+  Copyright (c) Contributors to the Eclipse Foundation
+ 
+  This program and the accompanying materials are made available under the
+  terms of the Eclipse Public License 2.0 which is available at
+  http://www.eclipse.org/legal/epl-2.0, or the Apache License, Version 2.0
+  which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ 
+  SPDX-License-Identifier: (EPL-2.0 OR Apache-2.0)
+ -->
+<taglib xmlns="http://java.sun.com/xml/ns/j2ee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee
+            web-jsptaglibrary_2_0.xsd"
+        version="2.0">
+    <tlib-version>2.0</tlib-version>
+    <function>
+        <name>getId</name>
+        <function-class>test.MyFunctions</function-class>
+        <function-signature>
+            java.lang.String getId(javax.servlet.http.HttpServletRequest)
+        </function-signature>
+    </function>
+    <function>
+        <name>getId2</name>
+        <function-class>test.MyFunctions</function-class>
+        <function-signature>
+            java.lang.String getId2(javax.servlet.http.HttpSession)
+        </function-signature>
+    </function>
+</taglib>
