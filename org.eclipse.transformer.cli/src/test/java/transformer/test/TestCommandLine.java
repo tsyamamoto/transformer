@@ -76,6 +76,17 @@ class TestCommandLine {
 	}
 
 	@Test
+	void testInputFileAndOutputDirectoryAccepted() throws Exception {
+		String inputFileName = new File(STATIC_CONTENT_DIR + '/' + "A.java").getAbsolutePath()
+			.replace("\\", "/");
+		File tmp = new File(DYNAMIC_CONTENT_DIR, "work" + System.currentTimeMillis());
+		tmp.mkdir();
+		String outputFileName = DYNAMIC_CONTENT_DIR + '/' + tmp.getName();
+		verifyAction(JavaActionImpl.class.getName(), inputFileName, outputFileName,
+			outputFileName + "/A.java");
+	}
+
+	@Test
 	void testInputDirectoryNameOnlyAccepted() throws Exception {
 		String inputFileName = STATIC_CONTENT_DIR;
 		File inputFile = new File(inputFileName);

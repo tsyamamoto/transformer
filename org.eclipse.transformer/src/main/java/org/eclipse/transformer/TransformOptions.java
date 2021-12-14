@@ -758,12 +758,12 @@ public class TransformOptions {
 		boolean putIntoDirectory = (inputFile.isFile() && useOutputFile.isDirectory());
 
 		if (putIntoDirectory) {
-			useOutputName = useOutputName + '/' + inputName;
+			useOutputName = useOutputName + '/' + inputFile.getName();
 			if (isVerbose) {
 				this.transformer.dual_info("Output generated using input name and output directory [ %s ]", useOutputName);
 			}
 
-			useOutputFile = new File(useOutputName);
+			useOutputFile = new File(useOutputFile, inputFile.getName());
 			useOutputPath = useOutputFile.getAbsolutePath();
 		}
 
