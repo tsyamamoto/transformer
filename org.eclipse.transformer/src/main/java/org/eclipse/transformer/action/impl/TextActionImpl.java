@@ -43,7 +43,7 @@ public class TextActionImpl extends ElementActionImpl {
 	public TextActionImpl(ActionContext context) {
 		super(context);
 
-		List<StringReplacement> replacements = createActiveReplacements(context.getSignatureRule());
+		List<StringReplacement> replacements = createActiveReplacements(getSignatureRule());
 		this.activeReplacements = replacements.isEmpty() ? NO_ACTIVE_REPLACEMENTS : replacements;
 	}
 
@@ -63,11 +63,6 @@ public class TextActionImpl extends ElementActionImpl {
 	}
 
 	@Override
-	public String getName() {
-		return "Text Action";
-	}
-
-	@Override
 	public ActionType getActionType() {
 		return ActionType.TEXT;
 	}
@@ -76,13 +71,6 @@ public class TextActionImpl extends ElementActionImpl {
 	public boolean acceptResource(String resourceName, File resourceFile) {
 		return (getTextSubstitutions(resourceName) != null);
 	}
-
-	@Override
-	public String getAcceptExtension() {
-		throw new UnsupportedOperationException(getClass().getSimpleName() + " does not support this method");
-	}
-
-	//
 
 	@Override
 	public ByteData apply(ByteData inputData) throws TransformException {
@@ -117,8 +105,7 @@ public class TextActionImpl extends ElementActionImpl {
 	//
 
 	protected void transform(String inputName, LineSeparatorBufferedReader reader, BufferedWriter writer) throws IOException {
-		String inputLine;
-		while ((inputLine = reader.readLine()) != null) {
+		for (String inputLine; (inputLine = reader.readLine()) != null; writer.write(reader.lineSeparator())) {
 			String outputLine = transformString(inputName, "text line", inputLine);
 			if (outputLine != null) {
 				addReplacement(); // Count lines, not individual replacements.
@@ -127,7 +114,6 @@ public class TextActionImpl extends ElementActionImpl {
 			}
 
 			writer.write(outputLine);
-			writer.write(reader.lineSeparator());
 		}
 	}
 
